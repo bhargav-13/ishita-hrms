@@ -37,6 +37,7 @@
     "directories": {
       "output": "release"
     },
+    "artifactName": "IshitaHRMS-Setup-${version}.${ext}",
     "files": [
       "electron/**/*",
       "dist/**/*",
