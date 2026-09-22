@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { Drawer, Field, Switch } from '../../components/Drawer.jsx';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -36,7 +37,7 @@ export default function Shifts({ onBack }) {
                 <div><strong>{s.name}</strong>
                   <div className="muted">{fmt(s.start_time)} – {fmt(s.end_time)} · {Number(s.full_day_hours)}h full day</div>
                 </div>
-                <button className="icon-btn" onClick={(e) => { e.stopPropagation(); remove(s.id); }}>🗑</button>
+                <button className="icon-btn" onClick={(e) => { e.stopPropagation(); remove(s.id); }}><Trash2 size={15} /></button>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
                 {(s.weekly_offs || []).length > 0

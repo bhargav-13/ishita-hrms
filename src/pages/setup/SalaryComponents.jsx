@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 
 // Org-wide default earnings & deductions new employees inherit.
 // kind = EARNING/DEDUCTION, calc = CTC/BASIC/GROSS/FLAT.
@@ -73,7 +74,7 @@ function Section({ title, tone, items, onAdd, upd, del, calcs }) {
               <td><input className="input" type="number" value={r.value} onChange={(e) => upd(i, { value: Number(e.target.value) })} /></td>
               <td><input className="input" type="number" value={r.cap ?? ''} onChange={(e) => upd(i, { cap: e.target.value === '' ? null : Number(e.target.value) })} placeholder="—" /></td>
               <td><input className="input" type="number" value={r.threshold ?? ''} onChange={(e) => upd(i, { threshold: e.target.value === '' ? null : Number(e.target.value) })} placeholder="—" /></td>
-              <td><button className="icon-btn" onClick={() => del(i)}>✕</button></td>
+              <td><button className="icon-btn" onClick={() => del(i)}><X size={15} /></button></td>
             </tr>
           ))}
         </tbody>

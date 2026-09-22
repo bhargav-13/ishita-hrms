@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Download, Trash2 } from 'lucide-react';
 import { Drawer, Field, Switch } from '../components/Drawer.jsx';
 
 const CATEGORIES = [
@@ -42,7 +43,7 @@ export default function Employees() {
         <p className="muted" style={{ margin: 0 }}>Map each device emp code to a person, set their salary structure and assign policies.</p>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {importMsg && <span className="muted">{importMsg}</span>}
-          <button className="btn" onClick={importDevice}>⇩ Import from device</button>
+          <button className="btn" onClick={importDevice}><Download size={15} /> Import from device</button>
           <button className="btn accent" onClick={() => setEditing('new')}>+ Add Employee</button>
         </div>
       </div>
@@ -63,7 +64,7 @@ export default function Employees() {
                   <td><span className="chip gray">{catLabel(e.category)}</span></td>
                   <td>{e.category === 'WORK_BASIS' ? `₹${Number(e.work_rate)}/${(e.work_type || 'day').toLowerCase()}` : `₹${Number(e.monthly_ctc).toLocaleString('en-IN')}`}</td>
                   <td className="muted">{shiftName(policies.shifts, e.shift_id)}</td>
-                  <td><button className="icon-btn" onClick={(ev) => { ev.stopPropagation(); remove(e.id); }}>🗑</button></td>
+                  <td><button className="icon-btn" onClick={(ev) => { ev.stopPropagation(); remove(e.id); }}><Trash2 size={15} /></button></td>
                 </tr>
               ))}
             </tbody>

@@ -8,13 +8,14 @@ import Holidays from './setup/Holidays.jsx';
 import Leave from './setup/Leave.jsx';
 import SalaryComponents from './setup/SalaryComponents.jsx';
 import logo from '../assets/logo.png';
+import { Clock, Users, Wallet, SlidersHorizontal, Database } from 'lucide-react';
 
 const NAV_SECTIONS = [
-  { label: 'Overview', items: [{ key: 'Attendance', icon: '🕑' }] },
-  { label: 'People', items: [{ key: 'Employees', icon: '👥' }] },
-  { label: 'Payroll', items: [{ key: 'Payroll', icon: '🪙' }] },
-  { label: 'Configure', items: [{ key: 'Setup', icon: '⚙️' }] },
-  { label: 'System', items: [{ key: 'Settings', icon: '🔌' }] },
+  { label: 'Overview', items: [{ key: 'Attendance', icon: Clock }] },
+  { label: 'People', items: [{ key: 'Employees', icon: Users }] },
+  { label: 'Payroll', items: [{ key: 'Payroll', icon: Wallet }] },
+  { label: 'Configure', items: [{ key: 'Setup', icon: SlidersHorizontal }] },
+  { label: 'System', items: [{ key: 'Settings', icon: Database }] },
 ];
 const TOP_KEYS = NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.key));
 
@@ -38,11 +39,14 @@ export default function Dashboard({ session, onLogout }) {
             {NAV_SECTIONS.map((section) => (
               <div key={section.label}>
                 <div className="nav-group-label">{section.label}</div>
-                {section.items.map((item) => (
-                  <a key={item.key} className={topNav === item.key ? 'active' : ''} onClick={() => setView(item.key)}>
-                    <span>{item.icon}</span> {item.key}
-                  </a>
-                ))}
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <a key={item.key} className={topNav === item.key ? 'active' : ''} onClick={() => setView(item.key)}>
+                      <Icon size={17} strokeWidth={1.8} /> {item.key}
+                    </a>
+                  );
+                })}
               </div>
             ))}
           </nav>

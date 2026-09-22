@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Clock, Palmtree, CalendarDays, Coins } from 'lucide-react';
 
 // Pre-setup hub. Configure reusable policies once, then assign them to each
 // employee on their salary profile. Mirrors the Hitech payroll Setup screen.
@@ -17,16 +18,16 @@ export default function Setup({ onOpen }) {
   }, []);
 
   const cards = [
-    { key: 'setup/shifts', icon: '🕑', title: 'Shifts',
+    { key: 'setup/shifts', icon: Clock, title: 'Shifts',
       desc: 'Work timings, weekly-offs, grace period and overtime rules.',
       count: `${counts.shifts} shift${counts.shifts === 1 ? '' : 's'}`, ready: counts.shifts > 0 },
-    { key: 'setup/holidays', icon: '🌴', title: 'Holiday Policy',
+    { key: 'setup/holidays', icon: Palmtree, title: 'Holiday Policy',
       desc: 'Named holiday calendars — public and optional holidays per year.',
       count: `${counts.holidays} ${counts.holidays === 1 ? 'policy' : 'policies'}`, ready: counts.holidays > 0 },
-    { key: 'setup/leave', icon: '📅', title: 'Leave Policy',
+    { key: 'setup/leave', icon: CalendarDays, title: 'Leave Policy',
       desc: 'Leave types with annual counts and how they accrue.',
       count: `${counts.leaves} ${counts.leaves === 1 ? 'policy' : 'policies'}`, ready: counts.leaves > 0 },
-    { key: 'setup/salary', icon: '🪙', title: 'Salary Components',
+    { key: 'setup/salary', icon: Coins, title: 'Salary Components',
       desc: 'Default earnings & deductions (Basic, HRA, PF, ESIC, PT…) new staff inherit.',
       count: `${counts.components} component${counts.components === 1 ? '' : 's'}`, ready: counts.components > 0 },
   ];
@@ -40,7 +41,7 @@ export default function Setup({ onOpen }) {
         {cards.map((c) => (
           <div key={c.key} className="setup-card" onClick={() => onOpen(c.key)}>
             <div className="row-between">
-              <div className="ico">{c.icon}</div>
+              <div className="ico"><c.icon size={19} strokeWidth={1.8} /></div>
               <span className={'pill ' + (c.ready ? 'ok' : 'warn')}>{c.count}</span>
             </div>
             <h4>{c.title}</h4>

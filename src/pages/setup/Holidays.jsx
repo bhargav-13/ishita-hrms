@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Trash2, X } from 'lucide-react';
 import { Drawer, Field } from '../../components/Drawer.jsx';
 
 export default function Holidays({ onBack }) {
@@ -31,7 +32,7 @@ export default function Holidays({ onBack }) {
                 <div><strong>{p.name}</strong>
                   <div className="muted">{p.year} · {p.holidays.length} holiday{p.holidays.length === 1 ? '' : 's'}</div>
                 </div>
-                <button className="icon-btn" onClick={(e) => { e.stopPropagation(); remove(p.id); }}>🗑</button>
+                <button className="icon-btn" onClick={(e) => { e.stopPropagation(); remove(p.id); }}><Trash2 size={15} /></button>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
                 {p.holidays.slice(0, 4).map((h) => <span key={h.date} className="chip gray">{h.name}</span>)}
@@ -93,7 +94,7 @@ function PolicyDrawer({ existing, onClose, onSaved }) {
               <option value="PUBLIC">Public</option>
               <option value="OPTIONAL">Optional</option>
             </select>
-            <button className="icon-btn" onClick={() => del(i)}>✕</button>
+            <button className="icon-btn" onClick={() => del(i)}><X size={15} /></button>
           </div>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 // Right-side slide-over used by every add/edit form.
 export function Drawer({ title, onClose, onSave, saveLabel = 'Save', width, children }) {
@@ -8,7 +9,7 @@ export function Drawer({ title, onClose, onSave, saveLabel = 'Save', width, chil
       <div className="drawer" style={width ? { width } : undefined}>
         <div className="drawer-head">
           <h3>{title}</h3>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <button className="icon-btn" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="drawer-body">{children}</div>
         <div className="drawer-foot">

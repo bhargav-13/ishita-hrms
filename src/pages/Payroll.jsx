@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 
 const rupee = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
@@ -133,7 +134,7 @@ function History({ onOpen }) {
               <td>{r.staff_count}</td>
               <td>{rupee(r.total_net)}</td>
               <td><span className={'chip ' + (r.status === 'FINALISED' ? 'green' : 'gray')}>{r.status}</span></td>
-              <td><button className="icon-btn" onClick={(e) => del(r.id, e)}>🗑</button></td>
+              <td><button className="icon-btn" onClick={(e) => del(r.id, e)}><Trash2 size={15} /></button></td>
             </tr>
           ))}
         </tbody>
