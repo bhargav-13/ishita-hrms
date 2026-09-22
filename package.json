@@ -64,7 +64,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "REPLACE_WITH_GH_OWNER",
+        "owner": "bhargav-13",
         "repo": "ishita-hrms",
         "private": true
       }
