@@ -51,6 +51,11 @@ contextBridge.exposeInMainWorld('hrms', {
     setStatus: (id, status) => ipcRenderer.invoke('payroll:setStatus', { id, status }),
     deleteRun: (id) => ipcRenderer.invoke('payroll:deleteRun', id),
   },
+  erpSync: {
+    status: () => ipcRenderer.invoke('erpSync:status'),
+    syncNow: () => ipcRenderer.invoke('erpSync:syncNow'),
+    save: (settings) => ipcRenderer.invoke('erpSync:save', settings),
+  },
   update: {
     install: () => ipcRenderer.invoke('update:install'),
     onStatus: (cb) => {

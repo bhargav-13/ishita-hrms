@@ -1,6 +1,6 @@
 {
   "name": "ishita-hrms",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Ishita HRMS - local face-attendance & payroll desktop app",
   "author": "Ishita Industries",
   "main": "electron/main.js",

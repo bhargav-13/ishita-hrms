@@ -23,6 +23,18 @@ const DEFAULTS = {
   hrmsDb: 'hrms',
   // Offline grace window for a cached login, in hours.
   offlineGraceHours: 72,
+  // Copy device punches to the cloud ERP in the background (electron/erpSync.js).
+  erpSync: {
+    enabled: true,
+    // Empty = same server as authBaseUrl.
+    baseUrl: '',
+    // Must equal ATTENDANCE_SYNC_KEY on the ERP server. Entered in Settings → ERP sync.
+    syncKey: '',
+    intervalSeconds: 30,
+  },
+  // Start with Windows and keep running in the tray when the window is closed, so punches
+  // keep flowing to the ERP whenever this PC is on.
+  runInBackground: true,
 };
 
 function configPath() {
@@ -46,6 +58,7 @@ function loadConfig() {
     ...DEFAULTS,
     ...fileCfg,
     pg: { ...DEFAULTS.pg, ...(fileCfg.pg || {}) },
+    erpSync: { ...DEFAULTS.erpSync, ...(fileCfg.erpSync || {}) },
   };
   return cached;
 }
@@ -54,7 +67,12 @@ function loadConfig() {
 // so the client never edits JSON by hand.
 function saveConfig(partial) {
   const cur = loadConfig();
-  const merged = { ...cur, ...partial, pg: { ...cur.pg, ...(partial.pg || {}) } };
+  const merged = {
+    ...cur,
+    ...partial,
+    pg: { ...cur.pg, ...(partial.pg || {}) },
+    erpSync: { ...cur.erpSync, ...(partial.erpSync || {}) },
+  };
   fs.writeFileSync(configPath(), JSON.stringify(merged, null, 2), 'utf8');
   cached = merged;
   return merged;

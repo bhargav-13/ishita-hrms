@@ -7,9 +7,11 @@ const { testConnections, ensureHrmsDatabase, resetPools } = require('./db');
 const punches = require('./punches');
 const setup = require('./setup');
 const payroll = require('./payroll');
+const erpSync = require('./erpSync');
 const { quitAndInstall } = require('./updater');
 
-function registerIpc() {
+// onBackgroundChanged: main.js re-applies start-with-Windows when the user flips that setting.
+function registerIpc({ onBackgroundChanged } = {}) {
   ipcMain.handle('auth:login', (_e, { username, password }) => auth.login(username, password));
   ipcMain.handle('auth:session', () => auth.currentSession());
   ipcMain.handle('auth:logout', () => auth.logout());
@@ -61,6 +63,14 @@ function registerIpc() {
   ipcMain.handle('payroll:getRun', (_e, id) => payroll.getRun(id));
   ipcMain.handle('payroll:setStatus', (_e, { id, status }) => payroll.setRunStatus(id, status));
   ipcMain.handle('payroll:deleteRun', (_e, id) => payroll.deleteRun(id));
+
+  ipcMain.handle('erpSync:status', () => erpSync.status());
+  ipcMain.handle('erpSync:syncNow', () => erpSync.restart());
+  ipcMain.handle('erpSync:save', async (_e, { erpSync: s, runInBackground }) => {
+    saveConfig({ erpSync: s, runInBackground });
+    if (onBackgroundChanged) onBackgroundChanged();
+    return erpSync.restart();
+  });
 
   ipcMain.handle('update:install', () => quitAndInstall());
 }

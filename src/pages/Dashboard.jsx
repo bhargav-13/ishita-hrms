@@ -3,6 +3,7 @@ import Employees from './Employees.jsx';
 import Payroll from './Payroll.jsx';
 import Setup from './Setup.jsx';
 import DbSettings from './DbSettings.jsx';
+import ErpSync from './ErpSync.jsx';
 import Shifts from './setup/Shifts.jsx';
 import Holidays from './setup/Holidays.jsx';
 import Leave from './setup/Leave.jsx';
@@ -116,6 +117,12 @@ function Settings() {
         stores payroll in its own DB (<b>hrms</b>, created automatically).
       </p>
       <DbSettings />
+      <h3 style={{ marginTop: 28 }}>ERP sync</h3>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Copies every face punch to the cloud ERP every 30 seconds while this PC is on. If the internet
+        drops, nothing is lost — it catches up when it’s back.
+      </p>
+      <ErpSync />
     </div>
   );
 }

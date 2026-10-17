@@ -70,6 +70,11 @@ our app uses that same code to match them.
 4. Load your staff: **Employees → Import from device** → then open each person to set
    their **salary** and assign a **Shift** (Setup → Shifts).
 
+5. Send attendance to the ERP: **Settings → ERP sync** → paste the **ERP sync key** (ask Ishita
+   support) → **Save**. The badge turns green (**Syncing**). From now on HRMS starts with Windows
+   and keeps sending punches from the tray, even when its window is closed.
+   *(Full details: `ERP-SYNC-SETUP.md`.)*
+
 Setup is complete. ✅
 
 ---
