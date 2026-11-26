@@ -43,12 +43,17 @@ contextBridge.exposeInMainWorld('hrms', {
     remove: (id) => ipcRenderer.invoke('employees:delete', id),
     importDevice: () => ipcRenderer.invoke('employees:importDevice'),
   },
+  salary: {
+    history: (employeeId) => ipcRenderer.invoke('salary:history', employeeId),
+    revise: (input) => ipcRenderer.invoke('salary:revise', input),
+    removeRevision: (id) => ipcRenderer.invoke('salary:removeRevision', id),
+  },
   payroll: {
     preview: (args) => ipcRenderer.invoke('payroll:preview', args),
     run: (args) => ipcRenderer.invoke('payroll:run', args),
     listRuns: () => ipcRenderer.invoke('payroll:listRuns'),
     getRun: (id) => ipcRenderer.invoke('payroll:getRun', id),
-    setStatus: (id, status) => ipcRenderer.invoke('payroll:setStatus', { id, status }),
+    finalise: (id) => ipcRenderer.invoke('payroll:finalise', id),
     deleteRun: (id) => ipcRenderer.invoke('payroll:deleteRun', id),
   },
   erpSync: {

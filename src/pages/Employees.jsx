@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Download, Trash2 } from 'lucide-react';
 import { Drawer, Field, Switch } from '../components/Drawer.jsx';
+import SalaryPanel from './SalaryPanel.jsx';
+import { errMsg, iso, prettyDate } from '../lib.js';
 
 const CATEGORIES = [
   { value: 'REGULAR', label: 'Regular Employee' },
@@ -25,7 +27,7 @@ export default function Employees() {
         : `Imported ${r.added} new, ${r.skipped} already existed.`);
       load();
     } catch (e) {
-      setImportMsg('Import failed: ' + (e.message || e));
+      setImportMsg('Import failed: ' + errMsg(e));
     }
     setTimeout(() => setImportMsg(''), 5000);
   }
@@ -35,7 +37,11 @@ export default function Employees() {
       .then(([shifts, holidays, leaves]) => setPolicies({ shifts, holidays, leaves }));
   }, []);
 
-  async function remove(id) { await window.hrms.employees.remove(id); load(); }
+  async function remove(e) {
+    if (!window.confirm(`Remove ${e.full_name} (${e.emp_code})?`)) return;
+    try { await window.hrms.employees.remove(e.id); } catch (err) { setImportMsg(errMsg(err)); setTimeout(() => setImportMsg(''), 7000); }
+    load();
+  }
 
   return (
     <div>
@@ -62,9 +68,16 @@ export default function Employees() {
                   <td>{e.emp_code}</td>
                   <td>{e.full_name}<div className="muted">{e.designation || '—'}</div></td>
                   <td><span className="chip gray">{catLabel(e.category)}</span></td>
-                  <td>{e.category === 'WORK_BASIS' ? `₹${Number(e.work_rate)}/${(e.work_type || 'day').toLowerCase()}` : `₹${Number(e.monthly_ctc).toLocaleString('en-IN')}`}</td>
+                  <td>
+                    {e.category === 'WORK_BASIS' ? `₹${Number(e.work_rate)}/${(e.work_type || 'day').toLowerCase()}` : `₹${Number(e.monthly_ctc).toLocaleString('en-IN')}`}
+                    {e.upcoming_from && (
+                      <div className="muted" style={{ fontSize: 12 }}>
+                        ₹{Number(e.category === 'WORK_BASIS' ? e.upcoming_rate : e.upcoming_ctc).toLocaleString('en-IN')} from {prettyDate(e.upcoming_from)}
+                      </div>
+                    )}
+                  </td>
                   <td className="muted">{shiftName(policies.shifts, e.shift_id)}</td>
-                  <td><button className="icon-btn" onClick={(ev) => { ev.stopPropagation(); remove(e.id); }}><Trash2 size={15} /></button></td>
+                  <td><button className="icon-btn" onClick={(ev) => { ev.stopPropagation(); remove(e); }}><Trash2 size={15} /></button></td>
                 </tr>
               ))}
             </tbody>
@@ -76,7 +89,7 @@ export default function Employees() {
         <EmployeeDrawer
           existing={editing === 'new' ? null : editing}
           policies={policies}
-          onClose={() => setEditing(null)}
+          onClose={() => { setEditing(null); load(); }}
           onSaved={() => { setEditing(null); load(); }}
         />
       )}
@@ -91,7 +104,7 @@ function EmployeeDrawer({ existing, policies, onClose, onSaved }) {
     department: existing?.department ?? '',
     designation: existing?.designation ?? '',
     category: existing?.category ?? 'REGULAR',
-    dateOfJoin: existing?.date_of_join ? String(existing.date_of_join).slice(0, 10) : '',
+    dateOfJoin: iso(existing?.date_of_join),
     monthlyCtc: Number(existing?.monthly_ctc ?? 0),
     basic: Number(existing?.basic ?? 0),
     hra: Number(existing?.hra ?? 0),
@@ -110,13 +123,15 @@ function EmployeeDrawer({ existing, policies, onClose, onSaved }) {
   async function save() {
     if (!f.empCode.trim()) { setErr('Emp code is required (matches the device).'); return; }
     if (!f.fullName.trim()) { setErr('Name is required.'); return; }
-    await window.hrms.employees.save({
-      id: existing?.id, ...f,
-      empCode: f.empCode.trim(), fullName: f.fullName.trim(),
-      dateOfJoin: f.dateOfJoin || null,
-      shiftId: f.shiftId || null, holidayPolicyId: f.holidayPolicyId || null, leavePolicyId: f.leavePolicyId || null,
-    });
-    onSaved();
+    try {
+      await window.hrms.employees.save({
+        id: existing?.id, ...f,
+        empCode: f.empCode.trim(), fullName: f.fullName.trim(),
+        dateOfJoin: f.dateOfJoin || null,
+        shiftId: f.shiftId || null, holidayPolicyId: f.holidayPolicyId || null, leavePolicyId: f.leavePolicyId || null,
+      });
+      onSaved();
+    } catch (e) { setErr(errMsg(e)); }
   }
 
   return (
@@ -138,8 +153,11 @@ function EmployeeDrawer({ existing, policies, onClose, onSaved }) {
         </select>
       </Field>
 
-      <h4 style={{ margin: '18px 0 10px' }}>Salary Structure</h4>
-      {isWork ? (
+      <h4 style={{ margin: '18px 0 10px' }}>{existing ? 'Salary' : 'Opening Salary'}</h4>
+      {existing ? (
+        // Salary of an existing employee changes only through a dated revision.
+        <SalaryPanel employee={{ ...existing, category: f.category }} />
+      ) : isWork ? (
         <div className="grid2">
           <Field label="Work Type">
             <select className="input" value={f.workType} onChange={(e) => set({ workType: e.target.value })}>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Lock, Trash2 } from 'lucide-react';
+import { addDays, errMsg, iso, prettyDate, toISO } from '../lib.js';
 
 const rupee = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
@@ -8,13 +9,12 @@ function lastThursday() {
   const d = new Date();
   const back = (d.getDay() - 4 + 7) % 7; // 4 = Thursday
   d.setDate(d.getDate() - back);
-  return d.toISOString().slice(0, 10);
+  return toISO(d);
 }
-function addDays(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
 function monthBounds() {
   const d = new Date();
-  const from = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-  const to = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const from = toISO(new Date(d.getFullYear(), d.getMonth(), 1));
+  const to = toISO(new Date(d.getFullYear(), d.getMonth() + 1, 0));
   return { from, to };
 }
 
@@ -55,7 +55,7 @@ function NewRun({ session, onSaved }) {
     setBusy(true); setMsg('');
     try {
       setRows(await window.hrms.payroll.preview({ fromDate, toDate, applyStatutory }));
-    } catch (e) { setMsg('Preview failed: ' + (e.message || e)); }
+    } catch (e) { setMsg('Preview failed: ' + errMsg(e)); }
     setBusy(false);
   }
 
@@ -63,9 +63,9 @@ function NewRun({ session, onSaved }) {
     setBusy(true); setMsg('');
     try {
       const label = `${periodType[0] + periodType.slice(1).toLowerCase()} ${fromDate} → ${toDate}`;
-      const r = await window.hrms.payroll.run({ label, periodType, fromDate, toDate, applyStatutory, runBy: session.displayName });
+      const r = await window.hrms.payroll.run({ label, periodType, fromDate, toDate, applyStatutory });
       onSaved(r.runId);
-    } catch (e) { setMsg('Run failed: ' + (e.message || e)); setBusy(false); }
+    } catch (e) { setMsg('Run failed: ' + errMsg(e)); setBusy(false); }
   }
 
   const totals = useMemo(() => (rows || []).reduce((a, r) => ({
@@ -117,13 +117,20 @@ function History({ onOpen }) {
   const load = () => window.hrms.payroll.listRuns().then(setRuns).catch(() => setRuns([]));
   useEffect(() => { load(); }, []);
 
-  async function del(id, e) { e.stopPropagation(); await window.hrms.payroll.deleteRun(id); load(); }
+  const [msg, setMsg] = useState('');
+  async function del(r, e) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete the draft run ${iso(r.from_date)} → ${iso(r.to_date)}?`)) return;
+    try { await window.hrms.payroll.deleteRun(r.id); setMsg(''); } catch (err) { setMsg(errMsg(err)); }
+    load();
+  }
 
   if (!runs) return <p className="muted">Loading…</p>;
   if (runs.length === 0) return <div className="card muted">No payroll runs yet. Create one under “New Run”.</div>;
 
   return (
     <div className="card" style={{ padding: 0 }}>
+      {msg && <div className="err" style={{ margin: 12 }}>{msg}</div>}
       <table>
         <thead><tr><th>Period</th><th>Type</th><th>Staff</th><th>Total net</th><th>Status</th><th></th></tr></thead>
         <tbody>
@@ -134,7 +141,9 @@ function History({ onOpen }) {
               <td>{r.staff_count}</td>
               <td>{rupee(r.total_net)}</td>
               <td><span className={'chip ' + (r.status === 'FINALISED' ? 'green' : 'gray')}>{r.status}</span></td>
-              <td><button className="icon-btn" onClick={(e) => del(r.id, e)}><Trash2 size={15} /></button></td>
+              <td>{r.status === 'FINALISED'
+                ? <span className="muted" title="Finalised (paid) runs cannot be deleted"><Lock size={14} /></span>
+                : <button className="icon-btn" title="Delete draft" onClick={(e) => del(r, e)}><Trash2 size={15} /></button>}</td>
             </tr>
           ))}
         </tbody>
@@ -145,6 +154,7 @@ function History({ onOpen }) {
 
 function RunDetail({ id, onBack }) {
   const [data, setData] = useState(null);
+  const [msg, setMsg] = useState('');
   const load = () => window.hrms.payroll.getRun(id).then(setData);
   useEffect(() => { load(); }, [id]);
   if (!data) return <p className="muted">Loading…</p>;
@@ -156,10 +166,20 @@ function RunDetail({ id, onBack }) {
     weekOff: Number(p.week_off_days), holiday: Number(p.holiday_days), absent: Number(p.absent_days),
     payableDays: Number(p.payable_days), otHours: Number(p.ot_hours), gross: Number(p.gross),
     pf: Number(p.pf), esic: Number(p.esic), pt: Number(p.pt), deductions: Number(p.deductions), net: Number(p.net_pay),
+    salarySnapshot: p.salary_snapshot || null,
   }));
   const totalNet = rows.reduce((a, r) => a + r.net, 0);
+  const finalised = run.status === 'FINALISED';
 
-  async function finalise() { await window.hrms.payroll.setStatus(id, run.status === 'FINALISED' ? 'DRAFT' : 'FINALISED'); load(); }
+  async function finalise() {
+    const ok = window.confirm(
+      `Finalise ${iso(run.from_date)} → ${iso(run.to_date)}?\n\n`
+      + 'Finalise means this payroll is PAID. It cannot be reopened, changed or deleted afterwards, '
+      + `and salaries can no longer be changed for dates up to ${prettyDate(run.to_date)}.`);
+    if (!ok) return;
+    try { await window.hrms.payroll.finalise(id); setMsg(''); } catch (e) { setMsg(errMsg(e)); }
+    load();
+  }
 
   return (
     <div>
@@ -171,11 +191,12 @@ function RunDetail({ id, onBack }) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn sm" onClick={() => exportCsv(rows, `payroll_${iso(run.from_date)}_${iso(run.to_date)}`)}>Export CSV</button>
-          <button className={'btn sm' + (run.status === 'FINALISED' ? '' : ' accent')} onClick={finalise}>
-            {run.status === 'FINALISED' ? 'Reopen' : 'Finalise'}
-          </button>
+          {finalised
+            ? <span className="chip green" style={{ alignSelf: 'center' }}><Lock size={12} /> Finalised · paid{run.finalised_by ? ` · by ${run.finalised_by}` : ''}</span>
+            : <button className="btn sm accent" onClick={finalise}>Finalise (mark paid)</button>}
         </div>
       </div>
+      {msg && <div className="err">{msg}</div>}
       <div className="card" style={{ padding: 0 }}>
         <PayslipTable rows={rows} showStat={run.apply_statutory} />
         <div className="muted" style={{ padding: '10px 16px' }}>Total net payable — {rupee(totalNet)}</div>
@@ -198,7 +219,7 @@ function PayslipTable({ rows, showStat }) {
       <tbody>
         {rows.map((r) => (
           <tr key={r.empCode}>
-            <td>{r.name}<div className="muted">{r.empCode}</div></td>
+            <td>{r.name}<div className="muted">{r.empCode}</div><RateUsed row={r} /></td>
             <td>{r.present}</td><td>{r.half}</td><td>{r.paidLeave}</td><td>{r.weekOff}</td><td>{r.holiday}</td>
             <td>{r.absent ? <span className="chip red">{r.absent}</span> : 0}</td>
             <td>{r.otHours || 0}</td><td>{rupee(r.gross)}</td>
@@ -208,6 +229,22 @@ function PayslipTable({ rows, showStat }) {
         ))}
       </tbody>
     </table>
+  );
+}
+
+// Shown only when the salary changed inside the period: which rate paid which days.
+function RateUsed({ row }) {
+  const parts = row.salarySnapshot;
+  if (!parts || parts.length < 2) return null;
+  const isWork = row.category === 'WORK_BASIS';
+  return (
+    <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+      {parts.map((s) => (
+        <div key={s.from}>
+          {prettyDate(s.from)} – {prettyDate(s.to)}: {isWork ? `${rupee(s.workRate)}/${(s.workType || 'day').toLowerCase()}` : `${rupee(s.monthlyCtc)}/month`}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -221,5 +258,3 @@ function exportCsv(rows, name) {
   a.href = url; a.download = name + '.csv'; a.click();
   URL.revokeObjectURL(url);
 }
-
-function iso(d) { return d ? String(d).slice(0, 10) : ''; }

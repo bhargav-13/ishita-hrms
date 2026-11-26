@@ -1,7 +1,12 @@
 // Postgres access. Two pools:
 //   easytime -> device software DB, READ ONLY (raw punches)
 //   hrms     -> our own DB (shifts, leave, salary, payroll)
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// DATE columns come back as plain 'YYYY-MM-DD' text. The default turns them
+// into a JS Date at local midnight, which in India is the previous day in UTC
+// and silently moved every date back by one.
+types.setTypeParser(1082, (v) => v);
 const fs = require('fs');
 const path = require('path');
 const { loadConfig } = require('./config');

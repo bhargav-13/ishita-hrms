@@ -9,6 +9,7 @@ import Holidays from './setup/Holidays.jsx';
 import Leave from './setup/Leave.jsx';
 import SalaryComponents from './setup/SalaryComponents.jsx';
 import logo from '../assets/logo.png';
+import { todayISO } from '../lib.js';
 import { Clock, Users, Wallet, SlidersHorizontal, Database } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -80,7 +81,7 @@ export default function Dashboard({ session, onLogout }) {
 }
 
 function Attendance() {
-  const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  const [today] = useState(() => todayISO());
   const [rows, setRows] = useState(null);
   const [err, setErr] = useState('');
 

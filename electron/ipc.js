@@ -7,6 +7,7 @@ const { testConnections, ensureHrmsDatabase, resetPools } = require('./db');
 const punches = require('./punches');
 const setup = require('./setup');
 const payroll = require('./payroll');
+const salary = require('./salary');
 const erpSync = require('./erpSync');
 const { quitAndInstall } = require('./updater');
 
@@ -32,37 +33,47 @@ function registerIpc({ onBackgroundChanged } = {}) {
     }
   });
 
-  ipcMain.handle('punches:recent', (_e, args) => punches.recentPunches(args || {}));
-  ipcMain.handle('punches:daily', (_e, dateISO) => punches.dailyAttendance(dateISO));
+  // Everything below reads or changes staff, salary or payroll data, so every
+  // call is checked here in the main process: a valid Admin login is required,
+  // and the handler is told WHO is acting (never trusted from the screen).
+  const secure = (channel, fn) => ipcMain.handle(channel, (_e, arg) => fn(arg, auth.requireAdmin()));
+
+  secure('punches:recent', (args) => punches.recentPunches(args || {}));
+  secure('punches:daily', (dateISO) => punches.dailyAttendance(dateISO));
 
   // Payroll setup
-  ipcMain.handle('shifts:list', () => setup.listShifts());
-  ipcMain.handle('shifts:save', (_e, s) => setup.saveShift(s));
-  ipcMain.handle('shifts:delete', (_e, id) => setup.deleteShift(id));
+  secure('shifts:list', () => setup.listShifts());
+  secure('shifts:save', (s) => setup.saveShift(s));
+  secure('shifts:delete', (id) => setup.deleteShift(id));
 
-  ipcMain.handle('holidays:list', () => setup.listHolidayPolicies());
-  ipcMain.handle('holidays:save', (_e, p) => setup.saveHolidayPolicy(p));
-  ipcMain.handle('holidays:delete', (_e, id) => setup.deleteHolidayPolicy(id));
+  secure('holidays:list', () => setup.listHolidayPolicies());
+  secure('holidays:save', (p) => setup.saveHolidayPolicy(p));
+  secure('holidays:delete', (id) => setup.deleteHolidayPolicy(id));
 
-  ipcMain.handle('leaves:list', () => setup.listLeavePolicies());
-  ipcMain.handle('leaves:save', (_e, p) => setup.saveLeavePolicy(p));
-  ipcMain.handle('leaves:delete', (_e, id) => setup.deleteLeavePolicy(id));
+  secure('leaves:list', () => setup.listLeavePolicies());
+  secure('leaves:save', (p) => setup.saveLeavePolicy(p));
+  secure('leaves:delete', (id) => setup.deleteLeavePolicy(id));
 
-  ipcMain.handle('components:list', () => setup.listComponents());
-  ipcMain.handle('components:save', (_e, list) => setup.saveComponents(list));
+  secure('components:list', () => setup.listComponents());
+  secure('components:save', (list) => setup.saveComponents(list));
 
-  ipcMain.handle('employees:list', () => setup.listEmployees());
-  ipcMain.handle('employees:save', (_e, e) => setup.saveEmployee(e));
-  ipcMain.handle('employees:delete', (_e, id) => setup.deleteEmployee(id));
-  ipcMain.handle('employees:importDevice', () => setup.importFromDevice());
+  secure('employees:list', () => setup.listEmployees());
+  secure('employees:save', (e, actor) => setup.saveEmployee(e || {}, actor));
+  secure('employees:delete', (id, actor) => setup.deleteEmployee(id, actor));
+  secure('employees:importDevice', (_a, actor) => setup.importFromDevice(actor));
+
+  // Salary history - the only way an existing employee's salary changes
+  secure('salary:history', (employeeId) => salary.history(employeeId));
+  secure('salary:revise', (input, actor) => salary.revise(input || {}, actor));
+  secure('salary:removeRevision', (id, actor) => salary.removeRevision(id, actor));
 
   // Payroll run
-  ipcMain.handle('payroll:preview', (_e, args) => payroll.preview(args));
-  ipcMain.handle('payroll:run', (_e, args) => payroll.runAndSave(args));
-  ipcMain.handle('payroll:listRuns', () => payroll.listRuns());
-  ipcMain.handle('payroll:getRun', (_e, id) => payroll.getRun(id));
-  ipcMain.handle('payroll:setStatus', (_e, { id, status }) => payroll.setRunStatus(id, status));
-  ipcMain.handle('payroll:deleteRun', (_e, id) => payroll.deleteRun(id));
+  secure('payroll:preview', (args) => payroll.preview(args || {}));
+  secure('payroll:run', (args, actor) => payroll.runAndSave(args || {}, actor));
+  secure('payroll:listRuns', () => payroll.listRuns());
+  secure('payroll:getRun', (id) => payroll.getRun(id));
+  secure('payroll:finalise', (id, actor) => payroll.finaliseRun(id, actor));
+  secure('payroll:deleteRun', (id, actor) => payroll.deleteRun(id, actor));
 
   ipcMain.handle('erpSync:status', () => erpSync.status());
   ipcMain.handle('erpSync:syncNow', () => erpSync.restart());

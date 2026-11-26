@@ -50,7 +50,7 @@ async function login(username, password) {
   } catch (e) {
     // Offline: fall back to a still-valid cached session for this user.
     const cached = readSession();
-    if (cached && cached.username === username && !isExpired(cached)) {
+    if (cached && cached.username === username && !isExpired(cached) && isAdmin(cached)) {
       return { ok: true, offline: true, session: strip(cached) };
     }
     return { ok: false, error: 'No internet and no valid saved login. Connect once to sign in.' };
@@ -60,16 +60,37 @@ async function login(username, password) {
     return { ok: false, error: `Login failed (${res.status}). Check your credentials.` };
   }
   const data = await res.json().catch(() => ({}));
+  const token = data.accessToken || data.token || data.access_token || null;
   const session = {
     username,
-    token: data.accessToken || data.token || data.access_token || null,
+    token,
     refreshToken: data.refreshToken || null,
     displayName: data.displayName || data.name || username,
-    roles: data.roles || [],
+    roles: rolesFromToken(token),
     loginAt: Date.now(),
   };
+  // Payroll and salaries are for the company's own Admin logins only - a
+  // customer (Client) login of the ERP must never get into this app.
+  if (!isAdmin(session)) {
+    return { ok: false, error: 'This app is only for Admin logins. Ask an Admin to sign in.' };
+  }
   saveSession(session);
   return { ok: true, offline: false, session: strip(session) };
+}
+
+// The ERP puts the user's roles in the access token ("ROLE_ADMIN" / "ROLE_CLIENT").
+// The token comes straight from the ERP over HTTPS, so reading its payload is enough here.
+function rolesFromToken(token) {
+  try {
+    const payload = JSON.parse(Buffer.from(String(token).split('.')[1], 'base64url').toString('utf8'));
+    return (payload.roles || []).map((r) => (r && r.authority) || r).filter((r) => typeof r === 'string');
+  } catch {
+    return [];
+  }
+}
+
+function isAdmin(session) {
+  return !!session && Array.isArray(session.roles) && session.roles.includes('ROLE_ADMIN');
 }
 
 function isExpired(session) {
@@ -86,8 +107,17 @@ function strip(session) {
 
 function currentSession() {
   const s = readSession();
-  if (!s || isExpired(s)) return null;
+  // Logins saved before roles were recorded have no roles: they must sign in again.
+  if (!s || isExpired(s) || !isAdmin(s)) return null;
   return strip(s);
+}
+
+// Every data handler in ipc.js goes through this, so the check runs in the
+// main process and cannot be skipped from the screen. Returns who is acting.
+function requireAdmin() {
+  const s = currentSession();
+  if (!s) throw new Error('Your login has expired. Please sign in again.');
+  return s.username;
 }
 
 function logout() {
@@ -95,4 +125,4 @@ function logout() {
   return { ok: true };
 }
 
-module.exports = { login, logout, currentSession };
+module.exports = { login, logout, currentSession, requireAdmin, rolesFromToken, isAdmin };
